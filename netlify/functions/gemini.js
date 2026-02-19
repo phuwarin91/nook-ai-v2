@@ -14,7 +14,7 @@ exports.handler = async function(event, context) {
 
   try {
     // 2. ใช้รุ่น Stable: gemini-3-flash
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -53,4 +53,5 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ error: "นุ๊กขออภัยค่ะ ระบบประมวลผลขัดข้อง: " + error.message })
     };
   }
+
 };
