@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FWD Planner Pro V21 (Professional Advisor)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #F0F4F8; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .text-fwd { color: #E85D10; }
+        .bg-fwd { background-color: #E85D10; }
+        .border-fwd { border-color: #E85D10; }
+        
+        /* Plan Card */
+        .plan-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #E2E8F0;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .plan-radio:checked + .plan-card {
+            border: 2px solid #E85D10;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(232, 93, 16, 0.1);
+            z-index: 10;
+        }
+        .plan-radio:checked + .plan-card::before {
+            content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 6px;
+            background: linear-gradient(to bottom, #E85D10, #FB923C);
+        }
+
+        /* Custom Range Slider */
+        .range-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .custom-number-display {
+            font-size: 1.25rem; font-weight: bold; color: #E85D10; width: 140px; text-align: right;
+            border: 1px solid transparent; background: transparent; transition: all 0.2s;
+        }
+        .custom-number-display:focus { border-bottom: 1px solid #E85D10; outline: none; }
+        .custom-number-display.disabled { color: #cbd5e1; }
+        
+        .range-slider {
+            flex-grow: 1; height: 6px; background: #e2e8f0; border-radius: 5px;
+            outline: none; -webkit-appearance: none; transition: opacity 0.3s;
+        }
+        .range-slider.disabled { opacity: 0.4; pointer-events: none; }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; background: #E85D10;
+            border-radius: 50%; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .step-btn {
+            width: 24px; height: 24px; background: #f1f5f9; color: #64748b;
+            border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 12px; transition: all 0.2s;
+        }
+        .step-btn:hover { background: #cbd5e1; color: #334155; }
+        .step-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* Full Screen Overlay */
+        .full-screen-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #F8FAFC; z-index: 100;
+            overflow-y: auto;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .full-screen-overlay.active { transform: translateY(0); }
+
+        /* Modals */
+        .modal { opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal.active { opacity: 1; visibility: visible; }
+        .modal-content { transform: scale(0.95); transition: all 0.3s; }
+        .modal.active .modal-content { transform: scale(1); }
+
+        /* AI Box Styles */
+        .ai-box {
+            background: linear-gradient(135deg, #FFF7ED 0%, #FFF 100%);
+            border: 1px solid #FED7AA;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .ai-box::before {
+            content: '✨ Nook AI Advisor';
+            position: absolute; top: 0; right: 0;
+            background: #E85D10; color: white;
+            font-size: 10px; padding: 2px 8px; border-radius: 0 0 0 8px; font-weight: bold;
+        }
+        
+        .ai-box-purple {
+            background: linear-gradient(135deg, #F3E8FF 0%, #FFF 100%);
+            border: 1px solid #D8B4FE;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .ai-box-purple::before {
+            content: '💬 AI Objection Killer';
+            position: absolute; top: 0; right: 0;
+            background: #9333EA; color: white;
+            font-size: 10px; padding: 2px 8px; border-radius: 0 0 0 8px; font-weight: bold;
+        }
+
+        .ai-box-teal {
+            background: linear-gradient(135deg, #ECFEFF 0%, #FFF 100%);
+            border: 1px solid #99F6E4;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .ai-box-teal::before {
+            content: '💡 AI Sales Idea';
+            position: absolute; top: 0; right: 0;
+            background: #0D9488; color: white;
+            font-size: 10px; padding: 2px 8px; border-radius: 0 0 0 8px; font-weight: bold;
+        }
+
+        .typing-indicator span {
+            display: inline-block; width: 6px; height: 6px;
+            background-color: #E85D10; border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out both; margin: 0 1px;
+        }
+        .ai-box-purple .typing-indicator span { background-color: #9333EA; }
+        .ai-box-teal .typing-indicator span { background-color: #0D9488; }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* --- PDF & Table Styles --- */
+        .fwd-table {
+            width: 100%; border-collapse: separate; border-spacing: 0;
+            font-family: 'Sarabun', sans-serif; font-size: 13px;
+            background-color: white; border: 2px solid #E85D10; border-radius: 8px 8px 0 0; overflow: hidden;
+        }
+        .fwd-table thead tr.main-header th {
+            background: linear-gradient(180deg, #F97316 0%, #E85D10 100%);
+            color: white; font-size: 20px; padding: 10px; border: none; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .fwd-table thead tr.col-header th {
+            text-align: center; padding: 8px;
+            border-bottom: 1px solid #fed7aa; border-right: 1px solid #fed7aa;
+            font-weight: bold; color: #7c2d12; background-color: #ffedd5; font-size: 14px; vertical-align: bottom;
+        }
+        .fwd-table thead tr.col-header th:last-child { border-right: none; }
+        .fwd-table tbody td {
+            text-align: center; padding: 6px 4px;
+            border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;
+            color: #334155; font-weight: 500; vertical-align: middle; font-size: 14px; height: 34px; 
+        }
+        .fwd-table tbody td:last-child { border-right: none; }
+        .fwd-table tbody tr:last-child td { border-bottom: none; }
+        .fwd-table tbody tr:nth-child(even) { background-color: #f8fafc; }
+        .fwd-table tbody tr:nth-child(odd) { background-color: #ffffff; }
+        .td-age { font-weight: 700; color: #c2410c; background-color: #fff7ed; } 
+        .td-total { background-color: #fffbeb !important; font-weight: 700; color: #b45309 !important; border-left: 1px solid #fed7aa; }
+        .fwd-table tfoot td {
+            background-color: #E85D10; color: white; font-weight: bold;
+            text-align: center; padding: 10px; font-size: 16px; border-top: 2px solid #c2410c;
+        }
+
+        /* PDF Hidden Container */
+        #pdf-capture-container {
+            position: absolute; top: 0; left: 0;
+            width: 794px; /* A4 Width at 96dpi approx */
+            min-height: 1123px; background: white;
+            padding: 20px 30px; 
+            z-index: -9999; visibility: hidden;
+            display: flex; flex-direction: column;
+            box-sizing: border-box; 
+        }
+        .pdf-page-wrapper { width: 100%; background: white; display: flex; flex-direction: column; }
+        
+        /* PDF Page Header - LIFTED UP */
+        .pdf-page-header {
+            background-color: #fff7ed; color: #ea580c; 
+            padding-top: 5px; 
+            padding-bottom: 14px; 
+            border-radius: 6px;
+            font-weight: bold; width: 100%; text-align: center; margin-bottom: 10px; font-size: 20px;
+            border: 1px solid #ffedd5; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            line-height: 1;
+        }
+        
+        .pdf-remark {
+            margin-top: 10px; font-size: 11px; color: #64748b; font-style: italic;
+            padding: 10px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #cbd5e1; line-height: 1.5;
+        }
+        .pdf-footer {
+            text-align: right; font-size: 12px; color: #E85D10; font-weight: bold;
+            border-top: 1px solid #f1f5f9; padding-top: 10px; margin-top: 15px;
+        }
+        
+        /* PDF Specific Mode Overrides - SHARP TEXT OPTIMIZATION */
+        .pdf-mode .fwd-table { box-shadow: none; border-width: 1px; margin-bottom: 0; }
+        
+        /* 1. Main Table Header Title (Orange) */
+        .pdf-mode .fwd-table thead tr.main-header th { 
+            font-size: 16px; 
+            padding: 6px; 
+            padding-bottom: 10px !important; 
+        }
+
+        /* 2. Column Headers (Cream) - SPACED OUT & LIFTED */
+        .pdf-mode .fwd-table thead tr.col-header th { 
+            font-size: 12px; 
+            padding-top: 4px !important;
+            padding-bottom: 12px !important; 
+            vertical-align: middle !important;
+            text-align: center !important;
+            line-height: 1.1;
+            /* Enhance sharpness */
+            font-weight: 700 !important;
+        }
+
+        /* 3. Body Data Rows - Center Lifted & SHARP */
+        .pdf-mode .fwd-table tbody td { 
+            font-size: 12px; 
+            padding-top: 0px !important; 
+            padding-bottom: 11px !important; /* Adjusted for 25 rows */
+            padding-left: 2px;
+            padding-right: 2px;
+            height: 28px; 
+            line-height: 0.9; 
+            vertical-align: middle !important;
+            text-align: center !important;
+            white-space: nowrap; 
+            /* Bolder font for sharpness at high zoom */
+            font-weight: 600 !important; 
+            color: #0f172a !important; /* Darker slate for contrast */
+        }
+        
+        /* Specific colors for specific columns in PDF mode for better contrast */
+        .pdf-mode .td-age { color: #9a3412 !important; }
+        .pdf-mode .td-total { color: #92400e !important; }
+
+        /* 4. Footer / Summary Row - Center Lifted */
+        .pdf-mode .fwd-table tfoot td { 
+            font-size: 14px; 
+            padding-top: 4px !important;
+            padding-bottom: 12px !important; 
+            vertical-align: middle !important; 
+            line-height: 1.0;
+            height: 32px; 
+            font-weight: bold !important;
+        }
+
+        /* Badges */
+        .badge-fixed { background-color: #e0f2fe; color: #0369a1; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: auto; display: inline-block; }
+        .badge-adjust { background-color: #fee2e2; color: #b91c1c; font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: auto; display: inline-block; }
+    </style>
+</head>
+<body class="text-slate-800 pb-32">
+
+    <!-- Navbar -->
+    <nav class="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-40 h-16 border-b border-slate-100">
+        <div class="container mx-auto px-4 h-full flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2 text-slate-400 hover:text-fwd transition-colors text-sm font-bold">
+                <i class="fas fa-arrow-left"></i> ย้อนกลับ
+            </a>
+            <div class="font-bold text-lg text-slate-800 tracking-tight">
+                Nook <span class="text-fwd">Advisor</span>
+            </div>
+            <button onclick="unlockPlan6()" class="text-slate-300 hover:text-fwd transition-colors">
+                <i class="fas fa-lock text-xs"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="pt-8 pb-6 bg-gradient-to-b from-white to-slate-50">
+        <div class="container mx-auto px-4 max-w-5xl">
+            <div class="text-center mb-6">
+                <span class="inline-block px-3 py-1 bg-orange-100 text-fwd rounded-full text-[10px] font-bold uppercase tracking-widest mb-3 border border-orange-200">Total Solution Plan</span>
+                <h1 class="text-2xl md:text-4xl font-bold text-slate-900 leading-tight mb-2">
+                    สร้างกองมรดก <span class="text-slate-300">|</span> <span class="text-fwd">ปิดความเสี่ยงโรคร้าย</span>
+                </h1>
+                <p class="text-slate-500 text-sm md:text-base">แผนประกันที่รวมความมั่นคง (90/20) และความคุ้มครองสุขภาพ (CI50) ไว้ด้วยกัน</p>
+            </div>
+
+            <!-- Inputs -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center max-w-2xl mx-auto">
+                <div class="w-full flex flex-col md:flex-row gap-3 items-center justify-between mb-2">
+                    <div class="w-full md:w-1/2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">เพศ</label>
+                        <div class="bg-slate-100 p-1 rounded-lg flex">
+                            <button onclick="setPersonGender(0, 'm')" id="p1-btn-m" class="flex-1 py-2 rounded-md text-sm font-bold bg-white text-fwd shadow-sm transition-all">ชาย 👨</button>
+                            <button onclick="setPersonGender(0, 'f')" id="p1-btn-f" class="flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700 transition-all">หญิง 👩</button>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">อายุ (ปี)</label>
+                        <div class="relative">
+                            <select id="p1-age" onchange="calculate()" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 font-bold text-slate-800 focus:outline-none focus:border-fwd appearance-none cursor-pointer text-sm">
+                                <!-- JS Injected -->
+                            </select>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><i class="fas fa-chevron-down text-xs"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Plans -->
+    <div class="container mx-auto px-4 max-w-4xl mb-12">
+        <div class="flex items-center justify-between mb-4 px-1 flex-wrap gap-2">
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-layer-group text-fwd"></i> เลือกแผนความคุ้มครอง
+            </h2>
+            <div class="flex gap-2 flex-wrap justify-end">
+                <button onclick="callGeminiAdvisor()" class="text-[10px] font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 border border-indigo-600 px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm flex items-center gap-1">
+                    <i class="fas fa-magic"></i> วิเคราะห์แผน
+                </button>
+                <button onclick="toggleObjectionBox()" class="text-[10px] font-bold text-white bg-gradient-to-r from-purple-500 to-pink-600 border border-purple-600 px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm flex items-center gap-1">
+                    <i class="fas fa-comments"></i> ตอบโต้แย้ง
+                </button>
+                <button onclick="toggleSalesBox()" class="text-[10px] font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 border border-teal-600 px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm flex items-center gap-1">
+                    <i class="fas fa-lightbulb"></i> ช่วยคิดบทขาย
+                </button>
+                <button onclick="toggleFutureOverlay()" class="text-[10px] font-bold text-white bg-slate-900 border border-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-700 transition-colors shadow-sm flex items-center gap-1">
+                    <i class="fas fa-chart-line"></i> ตารางเบี้ย
+                </button>
+            </div>
+        </div>
+        
+        <!-- AI Advisor Box (Analysis) -->
+        <div id="ai-advisor-box" class="hidden container mx-auto px-4 max-w-4xl mb-4">
+            <div class="ai-box">
+                <div id="ai-loading" class="text-center py-4 hidden">
+                    <div class="typing-indicator mb-2"><span></span><span></span><span></span></div>
+                    <p class="text-sm text-slate-500">นุ๊กกำลังวิเคราะห์ข้อมูลอย่างละเอียด...</p>
+                </div>
+                <div id="ai-content" class="hidden">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-orange-100 p-2 rounded-full">
+                            <i class="fas fa-robot text-fwd text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 mb-1">คำแนะนำจาก Nook AI Advisor</h4>
+                            <p id="ai-text" class="text-sm text-slate-600 leading-relaxed"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Objection Box (Purple) -->
+        <div id="ai-objection-box" class="hidden container mx-auto px-4 max-w-4xl mb-4">
+            <div class="ai-box-purple">
+                <div class="flex flex-col gap-3">
+                    <label class="text-sm font-bold text-purple-700">ลูกค้ามีข้อกังวลในเรื่องใดครับ?</label>
+                    <div class="flex gap-2">
+                        <textarea id="objection-input" rows="2" class="w-full border border-purple-200 rounded-lg p-2 text-sm focus:outline-none focus:border-purple-500 resize-none" placeholder="เช่น เบี้ยประกันดูสูงไปนิด, ขอปรึกษาครอบครัวก่อน..."></textarea>
+                        <button onclick="askGeminiObjection()" class="bg-purple-600 text-white px-4 rounded-lg font-bold hover:bg-purple-700 transition-colors flex-shrink-0 text-sm">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div id="objection-loading" class="text-center py-4 hidden">
+                        <div class="typing-indicator mb-2"><span></span><span></span><span></span></div>
+                        <p class="text-sm text-purple-400">กำลังร่างคำตอบที่เหมาะสมให้ครับ...</p>
+                    </div>
+                    <div id="objection-content" class="hidden mt-2 bg-white/50 p-3 rounded-lg border border-purple-100">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-purple-100 p-2 rounded-full flex-shrink-0">
+                                <i class="fas fa-comment-dots text-purple-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-purple-800 mb-1 text-sm">บทสนทนาแนะนำสำหรับคุณนุ๊ก</h4>
+                                <p id="objection-text" class="text-sm text-slate-600 leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Sales Idea Box (Teal/Green) -->
+        <div id="ai-sales-box" class="hidden container mx-auto px-4 max-w-4xl mb-4">
+            <div class="ai-box-teal">
+                <div class="flex flex-col gap-3">
+                    <label class="text-sm font-bold text-teal-700">ต้องการนำเสนอแผนนี้ด้วยแนวคิดใดครับ?</label>
+                    <div class="flex gap-2">
+                        <textarea id="sales-input" rows="2" class="w-full border border-teal-200 rounded-lg p-2 text-sm focus:outline-none focus:border-teal-500 resize-none" placeholder="เช่น เปรียบเทียบกับค่าใช้จ่ายฟุ่มเฟือย, เน้นความคุ้มครองระยะยาว..."></textarea>
+                        <button onclick="askGeminiSales()" class="bg-teal-600 text-white px-4 rounded-lg font-bold hover:bg-teal-700 transition-colors flex-shrink-0 text-sm">
+                            <i class="fas fa-lightbulb"></i>
+                        </button>
+                    </div>
+                    <div id="sales-loading" class="text-center py-4 hidden">
+                        <div class="typing-indicator mb-2"><span></span><span></span><span></span></div>
+                        <p class="text-sm text-teal-500">กำลังเรียบเรียงบทนำเสนอ...</p>
+                    </div>
+                    <div id="sales-content" class="hidden mt-2 bg-white/50 p-3 rounded-lg border border-teal-100">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-teal-100 p-2 rounded-full flex-shrink-0">
+                                <i class="fas fa-microphone-alt text-teal-600 text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-teal-800 mb-1 text-sm">แนวทางการนำเสนอสำหรับคุณนุ๊ก</h4>
+                                <p id="sales-text" class="text-sm text-slate-600 leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="plans-container" class="flex flex-col gap-3"></div>
+
+        <!-- Custom Plan 6 -->
+        <div id="plan-6-container" class="mt-3 hidden">
+            <label class="cursor-pointer group block relative z-0">
+                <input type="radio" name="plan" value="6" id="radio-plan-6" class="plan-radio sr-only" onchange="onPlanChange()">
+                <div class="plan-card rounded-2xl p-4 border-2 border-dashed border-slate-300 bg-slate-50">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="sm:w-1/4 w-full">
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white bg-fwd uppercase tracking-widest mb-1">Custom</span>
+                            <h3 class="text-xl font-bold text-slate-800">ออกแบบเอง</h3>
+                            <div class="mt-2">
+                                <select id="p6-type" onchange="calculate()" class="bg-white border border-slate-300 rounded px-2 py-1 w-full text-sm font-bold cursor-pointer hover:border-fwd transition-colors">
+                                    <option value="90/20">90/20 (คุ้มครองยาว)</option>
+                                    <option value="90/10">90/10 (ส่งสั้น 10 ปี)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-white p-3 rounded border border-slate-200 shadow-sm">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-[10px] font-bold text-sky-600 uppercase">ทุนชีวิต (บาท)</label>
+                                    <span class="badge-fixed">เบี้ยคงที่</span>
+                                </div>
+                                <div class="flex items-baseline justify-end">
+                                    <input type="text" id="p6-life-display" value="200,000" readonly class="custom-number-display text-sky-700">
+                                </div>
+                                <div class="range-container">
+                                    <div class="step-btn" onclick="stepValue('life', -100000)"><i class="fas fa-minus"></i></div>
+                                    <input type="range" id="p6-life-range" min="200000" max="5000000" step="100000" value="200000" class="range-slider" oninput="updateDisplay('life')">
+                                    <div class="step-btn" onclick="stepValue('life', 100000)"><i class="fas fa-plus"></i></div>
+                                </div>
+                                <div class="text-[9px] text-slate-400 mt-1 text-right" id="p6-life-msg">ขั้นต่ำตามเงื่อนไข</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-slate-200 shadow-sm">
+                                <div class="flex justify-between items-center mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="p6-ci-toggle" class="sr-only peer" checked onchange="validateAndCalc()">
+                                            <div class="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-red-600"></div>
+                                        </label>
+                                        <label class="text-[10px] font-bold text-red-600 uppercase cursor-pointer" for="p6-ci-toggle">ทุนโรคร้าย (บาท)</label>
+                                    </div>
+                                    <span class="badge-adjust">เบี้ยปรับตามวัย</span>
+                                </div>
+                                <div class="flex items-baseline justify-end">
+                                    <input type="text" id="p6-ci-display" value="500,000" readonly class="custom-number-display text-red-700">
+                                </div>
+                                <div class="range-container">
+                                    <div class="step-btn step-btn-ci" onclick="stepValue('ci', -100000)"><i class="fas fa-minus"></i></div>
+                                    <input type="range" id="p6-ci-range" min="500000" max="5000000" step="100000" value="500000" class="range-slider" oninput="updateDisplay('ci')">
+                                    <div class="step-btn step-btn-ci" onclick="stepValue('ci', 100000)"><i class="fas fa-plus"></i></div>
+                                </div>
+                                <div class="text-[9px] text-slate-400 mt-1 text-right" id="p6-ci-msg">ปรับได้อิสระ</div>
+                            </div>
+                        </div>
+                        <div class="sm:w-1/4 w-full text-right flex flex-col justify-center">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">เบี้ยรายปี</div>
+                            <div class="text-2xl font-bold text-slate-800 leading-none" id="p6-price">0</div>
+                            <div class="text-[10px] text-slate-400 mb-2">บาท/ปี</div>
+                            <div class="text-[10px] text-green-600 font-bold hidden" id="p6-discount-badge">🎉 ได้ส่วนลดเบี้ย</div>
+                        </div>
+                    </div>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Future Table FULL SCREEN OVERLAY -->
+    <div id="future-overlay" class="full-screen-overlay">
+        <!-- Sticky Header -->
+        <div class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-chart-line text-fwd"></i> ตารางเบี้ยอนาคต
+            </h3>
+            <div class="flex gap-2 items-center">
+                 <div class="hidden sm:flex items-center gap-2 mr-2 text-sm text-slate-500">
+                     <span>ระยะเวลา:</span>
+                     <select id="future-duration" onchange="renderFutureTable()" class="bg-slate-100 border-none rounded px-2 py-1 font-bold cursor-pointer hover:bg-slate-200 focus:ring-0">
+                         <option value="10">10 ปี</option>
+                         <option value="20" selected>20 ปี</option>
+                         <option value="30">30 ปี</option>
+                         <option value="60">ถึงอายุ 60</option>
+                         <option value="84">ถึงอายุ 84</option>
+                     </select>
+                 </div>
+                <button onclick="exportFullPDF()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-full shadow flex items-center gap-2 hover:scale-105 transition-transform">
+                    <i class="fas fa-file-pdf"></i> บันทึก PDF
+                </button>
+                <button onclick="toggleFutureOverlay()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Filter -->
+        <div class="sm:hidden px-4 py-3 bg-white border-b border-slate-100 sticky top-[61px] z-40">
+             <div class="flex items-center gap-2 text-sm text-slate-500 justify-center">
+                 <span>ระยะเวลา:</span>
+                 <select id="future-duration-mobile" onchange="syncDuration(this.value); renderFutureTable();" class="bg-slate-100 border-none rounded px-2 py-1 font-bold cursor-pointer w-full max-w-[150px]">
+                     <option value="10">10 ปี</option>
+                     <option value="20" selected>20 ปี</option>
+                     <option value="30">30 ปี</option>
+                     <option value="60">ถึงอายุ 60</option>
+                     <option value="84">ถึงอายุ 84</option>
+                 </select>
+             </div>
+        </div>
+
+        <!-- Content -->
+        <div class="container mx-auto max-w-4xl p-4 pb-20 min-h-screen flex justify-center">
+            <div id="screen-table-container" class="w-full"></div>
+        </div>
+    </div>
+
+    <!-- Hidden PDF Generation Container -->
+    <div id="pdf-capture-container" class="pdf-mode"></div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" class="modal fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closePasswordModal()"></div>
+        <div class="modal-content bg-white w-full max-w-xs rounded-2xl shadow-2xl relative z-10 p-6 text-center">
+            <h3 class="text-lg font-bold mb-4 text-slate-800">🔒 สำหรับตัวแทน</h3>
+            <input type="password" id="agent-password" class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 text-center tracking-widest text-lg font-bold outline-none focus:border-fwd" placeholder="รหัสผ่าน" onkeyup="if(event.key==='Enter') checkPassword()">
+            <div class="flex gap-2">
+                <button onclick="closePasswordModal()" class="flex-1 bg-slate-100 text-slate-500 py-2 rounded-lg font-bold hover:bg-slate-200">ยกเลิก</button>
+                <button onclick="checkPassword()" class="flex-1 bg-fwd text-white py-2 rounded-lg font-bold hover:bg-orange-600">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Bottom -->
+    <div class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-100 p-3 pb-6 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="container mx-auto max-w-5xl flex items-center justify-between gap-3">
+            <div class="flex-1">
+                <div class="text-[9px] text-slate-400 font-bold uppercase">แผนที่คุณเลือก</div>
+                <div class="text-fwd font-bold text-base leading-none mb-1" id="selected-plan-name">...</div>
+                <div class="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded inline-block" id="selected-plan-total">...</div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleSalesBox()" class="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 text-xs">
+                    <i class="fas fa-lightbulb"></i> บทขาย
+                </button>
+                <button onclick="callGeminiAdvisor()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 text-xs">
+                    <i class="fas fa-magic"></i> AI
+                </button>
+                 <button onclick="toggleFutureOverlay()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 text-xs">
+                    <i class="fas fa-chart-line"></i>
+                </button>
+                <button onclick="window.open('https://line.me/ti/p/@nookfwd', '_blank')" class="bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 px-5 rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95 text-sm">
+                    <span>ติดต่อตัวแทน</span>
+                    <i class="fab fa-line text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg z-50 flex items-center gap-2 transition-all duration-300 translate-y-20 opacity-0" style="pointer-events: none;">
+        <i class="fas fa-check-circle text-green-400"></i> <span>บันทึก PDF เรียบร้อย!</span>
+    </div>
+
+    <script>
+
+
+        // --- DATA ---
+        const plansData = [
+            { id: 1, name: "Basic", label: "แผนเริ่มต้น", lifeSum: 200000, ciSum: 1000000 },
+            { id: 2, name: "Standard", label: "ยอดนิยม", lifeSum: 200000, ciSum: 2000000 },
+            { id: 3, name: "Plus", label: "แนะนำ", lifeSum: 200000, ciSum: 3000000 },
+            { id: 4, name: "Premium", label: "ครอบคลุม", lifeSum: 200000, ciSum: 5000000 },
+            { id: 5, name: "Ultimate", label: "สูงสุด", lifeSum: 200000, ciSum: 10000000 }
+        ];
+
+        const rates_90_20 = {
+            m: {
+                0: 11.4, 1: 11.7, 2: 11.9, 3: 12.1, 4: 12.4, 5: 12.7, 6: 13.0, 7: 13.3, 8: 13.8, 9: 14.2,
+                10: 14.6, 11: 15.0, 12: 15.4, 13: 15.8, 14: 16.3, 15: 16.6, 16: 17.1, 17: 17.5, 18: 17.9, 19: 18.3,
+                20: 18.7, 21: 19.3, 22: 19.8, 23: 20.4, 24: 20.4, 25: 20.9, 26: 21.5, 27: 22.0, 28: 22.6, 29: 23.1,
+                30: 23.7, 31: 24.2, 32: 24.8, 33: 25.3, 34: 25.9, 35: 26.4, 36: 27.5, 37: 28.1, 38: 28.6, 39: 29.2,
+                40: 30.0, 41: 30.8, 42: 31.9, 43: 33.0, 44: 34.1, 45: 34.7, 46: 35.8, 47: 36.9, 48: 38.0, 49: 39.1,
+                50: 40.2, 51: 41.3, 52: 42.9, 53: 44.0, 54: 46.2, 55: 47.3, 56: 49.5, 57: 51.7, 58: 53.4, 59: 55.0,
+                60: 57.2, 61: 59.4, 62: 62.2, 63: 64.4, 64: 67.1, 65: 69.9
+            },
+            f: {
+                0: 9.2, 1: 9.4, 2: 9.6, 3: 9.8, 4: 10.0, 5: 10.2, 6: 10.5, 7: 10.7, 8: 10.9, 9: 11.1,
+                10: 11.4, 11: 11.7, 12: 12.0, 13: 12.3, 14: 12.8, 15: 13.1, 16: 13.3, 17: 13.8, 18: 14.1, 19: 14.6,
+                20: 14.9, 21: 15.3, 22: 15.7, 23: 16.1, 24: 16.5, 25: 17.1, 26: 17.5, 27: 17.8, 28: 18.3, 29: 18.8,
+                30: 19.4, 31: 19.9, 32: 20.6, 33: 21.1, 34: 21.8, 35: 22.3, 36: 23.1, 37: 23.8, 38: 24.5, 39: 25.2,
+                40: 26.0, 41: 26.7, 42: 27.3, 43: 28.4, 44: 29.2, 45: 30.0, 46: 30.8, 47: 31.9, 48: 32.8, 49: 33.9,
+                50: 34.9, 51: 35.9, 52: 37.4, 53: 38.4, 54: 40.2, 55: 41.8, 56: 43.5, 57: 45.1, 58: 46.8, 59: 48.4,
+                60: 50.1, 61: 51.7, 62: 53.9, 63: 55.6, 64: 57.8, 65: 60.0
+            }
+        };
+
+        const rates_90_10 = {
+            m: {
+                0: 19.9, 1: 20.5, 2: 20.9, 3: 21.5, 4: 21.9, 5: 22.3, 6: 22.9, 7: 23.7, 8: 24.5, 9: 25.3,
+                10: 26.2, 11: 26.2, 12: 27.0, 13: 27.7, 14: 28.6, 15: 29.4, 16: 30.3, 17: 31.0, 18: 31.9, 19: 32.8,
+                20: 33.8, 21: 34.4, 22: 35.3, 23: 36.3, 24: 37.3, 25: 38.3, 26: 39.1, 27: 39.7, 28: 40.5, 29: 41.3,
+                30: 42.2, 31: 42.9, 32: 43.6, 33: 44.6, 34: 45.4, 35: 46.6, 36: 47.7, 37: 49.1, 38: 50.5, 39: 52.0,
+                40: 53.7, 41: 55.4, 42: 57.1, 43: 58.9, 44: 60.6, 45: 62.2, 46: 63.7, 47: 65.3, 48: 66.9, 49: 68.6,
+                50: 70.4, 51: 72.2, 52: 74.1, 53: 76.0, 54: 78.1, 55: 80.2, 56: 82.4, 57: 84.7, 58: 87.1, 59: 89.7,
+                60: 92.3, 61: 95.1, 62: 98.1, 63: 101.2, 64: 103.5, 65: 104.1,
+                66: 105.0, 67: 107.0, 68: 110.0, 69: 111.0, 70: 115.0
+            },
+            f: {
+                0: 16.2, 1: 16.5, 2: 16.8, 3: 17.2, 4: 17.5, 5: 17.8, 6: 18.2, 7: 18.5, 8: 19.1, 9: 19.6,
+                10: 20.2, 11: 20.9, 12: 21.6, 13: 22.2, 14: 22.9, 15: 23.5, 16: 24.3, 17: 25.2, 18: 26.0, 19: 26.8,
+                20: 27.6, 21: 28.2, 22: 28.6, 23: 29.2, 24: 29.6, 25: 30.1, 26: 30.7, 27: 31.4, 28: 31.9, 29: 32.6,
+                30: 33.1, 31: 33.7, 32: 34.2, 33: 35.0, 34: 35.8, 35: 36.7, 36: 37.7, 37: 38.9, 38: 40.3, 39: 41.8,
+                40: 43.5, 41: 44.9, 42: 46.3, 43: 47.7, 44: 49.2, 45: 50.6, 46: 52.4, 47: 54.0, 48: 55.8, 49: 57.5,
+                50: 59.2, 51: 61.6, 52: 63.9, 53: 66.3, 54: 68.6, 55: 70.8, 56: 73.4, 57: 75.5, 58: 77.7, 59: 80.0,
+                60: 82.4, 61: 84.9, 62: 87.6, 63: 90.2, 64: 91.2, 65: 92.2,
+                66: 93.0, 67: 95.0, 68: 99.0, 69: 102.0, 70: 105.0
+            }
+        };
+
+        const rates_ci50 = {
+            m: {
+                16: 1.64, 17: 1.76, 18: 1.83, 19: 1.88, 20: 1.88, 21: 1.94, 22: 1.97, 23: 2.02, 24: 2.08, 25: 2.14,
+                26: 2.17, 27: 2.25, 28: 2.32, 29: 2.39, 30: 2.48, 31: 2.60, 32: 2.76, 33: 2.96, 34: 3.20, 35: 3.46,
+                36: 3.77, 37: 4.05, 38: 4.34, 39: 4.66, 40: 4.98, 41: 5.39, 42: 5.82, 43: 6.32, 44: 6.87, 45: 7.49,
+                46: 8.17, 47: 8.82, 48: 9.47, 49: 10.16, 50: 10.91, 51: 11.49, 52: 12.38, 53: 13.40, 54: 14.54, 55: 15.84,
+                56: 17.48, 57: 19.33, 58: 21.30, 59: 23.23, 60: 25.79, 61: 29.07, 62: 32.33, 63: 35.99, 64: 40.12, 65: 46.40,
+                66: 51.63, 67: 57.70, 68: 64.39, 69: 71.77, 70: 79.49, 71: 89.44, 72: 99.85, 73: 109.44, 74: 119.70, 75: 145.29,
+                76: 159.24, 77: 174.44, 78: 190.71, 79: 208.01, 80: 218.78, 81: 237.96, 82: 257.66, 83: 275.83, 84: 295.03
+            },
+            f: {
+                16: 1.20, 17: 1.18, 18: 1.14, 19: 1.10, 20: 1.08, 21: 1.08, 22: 1.12, 23: 1.17, 24: 1.24, 25: 1.33,
+                26: 1.40, 27: 1.51, 28: 1.62, 29: 1.72, 30: 1.85, 31: 2.01, 32: 2.22, 33: 2.48, 34: 2.78, 35: 3.10,
+                36: 3.45, 37: 3.76, 38: 4.04, 39: 4.31, 40: 4.58, 41: 4.80, 42: 5.15, 43: 5.53, 44: 5.96, 45: 6.44,
+                46: 7.00, 47: 7.53, 48: 8.04, 49: 8.56, 50: 9.03, 51: 9.54, 52: 9.88, 53: 10.15, 54: 10.41, 55: 10.72,
+                56: 11.35, 57: 12.22, 58: 13.07, 59: 14.15, 60: 15.70, 61: 17.67, 62: 19.77, 63: 21.68, 64: 23.73, 65: 27.69,
+                66: 31.33, 67: 34.84, 68: 38.88, 69: 43.52, 70: 48.62, 71: 55.59, 72: 63.24, 73: 70.38, 74: 78.27, 75: 101.52,
+                76: 109.33, 77: 122.06, 78: 135.81, 79: 150.49, 80: 152.34, 81: 167.74, 82: 183.48, 83: 198.14, 84: 213.63
+            }
+        };
+
+        let person = { gender: 'm', age: 31 };
+        let plan6Unlocked = false;
+
+        function init() {
+            // Initial age dropdown: Default is 16-65
+            updateAgeDropdown();
+            
+            const container = document.getElementById('plans-container');
+            plansData.forEach((plan, idx) => {
+                const isChecked = idx===0 ? 'checked' : '';
+                container.innerHTML += `
+                <label class="cursor-pointer group block relative z-0">
+                    <input type="radio" name="plan" value="${plan.id}" class="plan-radio sr-only" onchange="onPlanChange()" ${isChecked}>
+                    <div class="plan-card rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
+                        <div class="sm:w-1/4 w-full text-center sm:text-left">
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 bg-slate-100 uppercase tracking-widest mb-1">${plan.label}</span>
+                            <h3 class="text-xl font-bold text-slate-800">${plan.name}</h3>
+                        </div>
+                        <div class="flex-1 w-full grid grid-cols-2 gap-3">
+                            <div class="coverage-box life">
+                                <div class="text-[10px] text-sky-600 font-bold uppercase">ทุนชีวิต</div>
+                                <div class="text-sky-900 font-bold text-lg">${fmt(plan.lifeSum)}</div>
+                            </div>
+                            <div class="coverage-box ci">
+                                <div class="text-[10px] text-red-600 font-bold uppercase">ทุนโรคร้าย</div>
+                                <div class="text-red-900 font-bold text-lg">${fmt(plan.ciSum)}</div>
+                            </div>
+                        </div>
+                        <div class="sm:w-1/4 w-full text-center sm:text-right">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">เบี้ยรายปี</div>
+                            <div class="text-2xl font-bold text-slate-800 leading-none" id="price-plan-${plan.id}">...</div>
+                            <div class="text-[10px] text-slate-400">บาท/ปี</div>
+                        </div>
+                    </div>
+                </label>`;
+            });
+            calculate();
+        }
+
+        // Function to update age options based on plan selection
+        function updateAgeDropdown() {
+            const ageSel = document.getElementById('p1-age');
+            const currentAge = parseInt(ageSel.value) || 31;
+            
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            const isCustom = selRadio && selRadio.value === '6';
+            
+            let minAge = 16;
+            let maxAge = 65;
+            
+            // If Custom Plan is Unlocked AND Selected -> Extend range 0-70
+            if (isCustom && plan6Unlocked) {
+                minAge = 0;
+                maxAge = 70;
+            }
+            
+            ageSel.innerHTML = '';
+            for(let i=minAge; i<=maxAge; i++) {
+                const o = document.createElement('option');
+                o.value = i; o.text = i + " ปี";
+                ageSel.appendChild(o);
+            }
+            
+            // Try to keep current selection, else clamp
+            if (currentAge < minAge) ageSel.value = minAge;
+            else if (currentAge > maxAge) ageSel.value = maxAge;
+            else ageSel.value = currentAge;
+        }
+
+        // Wrapper for plan change event
+        function onPlanChange() {
+            updateAgeDropdown();
+            calculate();
+        }
+
+        function fmt(n) { return n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+        function setPersonGender(idx, g) {
+            person.gender = g;
+            document.getElementById('p1-btn-m').className = g==='m' ? "flex-1 py-2 rounded-md text-sm font-bold bg-white text-fwd shadow-sm border border-slate-200" : "flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700";
+            document.getElementById('p1-btn-f').className = g==='f' ? "flex-1 py-2 rounded-md text-sm font-bold bg-white text-fwd shadow-sm border border-slate-200" : "flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:text-slate-700";
+            calculate();
+        }
+
+        function getRate(table, age) {
+            if(!table) return 0;
+            if (table[age] !== undefined) return table[age];
+            const ages = Object.keys(table).map(Number).sort((a,b)=>a-b);
+            if(age < ages[0]) return table[ages[0]];
+            if(age > ages[ages.length-1]) {
+                const maxAge = ages[ages.length-1];
+                return table[maxAge] * Math.pow(1.12, age - maxAge);
+            }
+            let low = ages[0], high = ages[ages.length-1];
+            for(let a of ages) { if(a <= age) low = a; if(a >= age && high === ages[ages.length-1]) { high = a; break; } }
+            return table[low] + (age-low)*(table[high]-table[low])/(high-low);
+        }
+
+        function calculate() {
+            person.age = parseInt(document.getElementById('p1-age').value);
+
+            // Custom Plan Age 66-70 Restriction Logic
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            if(selRadio && selRadio.value === '6') {
+                const typeSel = document.getElementById('p6-type');
+                const option9020 = typeSel.querySelector('option[value="90/20"]');
+                
+                if (person.age >= 66) {
+                    // Force 90/10 and disable 90/20
+                    if (typeSel.value !== '90/10') typeSel.value = '90/10';
+                    if (option9020) {
+                        option9020.disabled = true;
+                        option9020.text = "90/20 (ไม่รองรับอายุ 66+)";
+                    }
+                } else {
+                    // Re-enable 90/20
+                    if (option9020) {
+                        option9020.disabled = false;
+                        option9020.text = "90/20 (คุ้มครองยาว)";
+                    }
+                }
+            }
+
+            plansData.forEach(plan => {
+                const mRate = getRate(rates_90_20[person.gender], person.age);
+                const cRate = getRate(rates_ci50[person.gender], person.age);
+                const total = Math.round((plan.lifeSum/1000)*mRate) + Math.round((plan.ciSum/1000)*cRate);
+                const el = document.getElementById(`price-plan-${plan.id}`);
+                if(el) el.innerText = fmt(total);
+            });
+            if(plan6Unlocked) calcPlan6();
+            updateBottomBar();
+        }
+
+        function updateBottomBar() {
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            if(selRadio) {
+                const pid = selRadio.value;
+                let pname, ptotal;
+                if(pid === '6') {
+                    pname = "Custom Plan";
+                    ptotal = document.getElementById('p6-price').innerText + " บ./ปี";
+                } else {
+                    const p = plansData.find(x => x.id == pid);
+                    pname = p.name;
+                    ptotal = document.getElementById(`price-plan-${pid}`).innerText + " บ./ปี";
+                }
+                document.getElementById('selected-plan-name').innerText = pname;
+                document.getElementById('selected-plan-total').innerText = ptotal;
+            }
+        }
+
+        function updateDisplay(type) {
+            const val = document.getElementById(`p6-${type}-range`).value;
+            document.getElementById(`p6-${type}-display`).value = fmt(parseInt(val));
+            validateAndCalc();
+        }
+        function stepValue(type, amount) {
+            // Check if toggled off
+            if(type === 'ci' && !document.getElementById('p6-ci-toggle').checked) return;
+
+            const range = document.getElementById(`p6-${type}-range`);
+            let val = parseInt(range.value) + amount;
+            range.value = val; 
+            updateDisplay(type);
+        }
+        function validateAndCalc() {
+            let life = parseInt(document.getElementById('p6-life-range').value);
+            
+            // Life Logic
+            let minLife = (person.age <= 5) ? 300000 : 200000;
+            const lifeRange = document.getElementById('p6-life-range');
+            if(parseInt(lifeRange.min) !== minLife) lifeRange.min = minLife;
+            if(life < minLife) { life = minLife; lifeRange.value = life; document.getElementById('p6-life-display').value = fmt(life); }
+            document.getElementById('p6-life-msg').innerText = `ขั้นต่ำ ${fmt(minLife)}`;
+
+            // CI Logic with Toggle
+            const ciToggle = document.getElementById('p6-ci-toggle');
+            const ciRange = document.getElementById('p6-ci-range');
+            const ciDisplay = document.getElementById('p6-ci-display');
+            const ciMsg = document.getElementById('p6-ci-msg');
+            const ciStepBtns = document.querySelectorAll('.step-btn-ci');
+            
+            let ci = 0;
+            let cPrem = 0;
+
+            if (ciToggle && ciToggle.checked) {
+                // Enabled
+                ciRange.disabled = false;
+                ciRange.classList.remove('disabled');
+                ciStepBtns.forEach(btn => btn.classList.remove('disabled'));
+                
+                ci = parseInt(ciRange.value);
+                let minCi = (life >= 1000000) ? 1000000 : 500000;
+                
+                if(parseInt(ciRange.min) !== minCi) ciRange.min = minCi;
+                if(ci < minCi) { ci = minCi; ciRange.value = ci; }
+                
+                ciDisplay.value = fmt(ci);
+                ciDisplay.classList.remove('disabled');
+                ciDisplay.classList.add('text-red-700');
+                ciMsg.innerText = `ขั้นต่ำ ${fmt(minCi)}`;
+
+                let cRate = getRate(rates_ci50[person.gender], person.age);
+                cPrem = Math.round((ci/1000)*cRate);
+            } else {
+                // Disabled
+                ciRange.disabled = true;
+                ciRange.classList.add('disabled');
+                ciStepBtns.forEach(btn => btn.classList.add('disabled'));
+                
+                ciDisplay.value = "ไม่เลือก";
+                ciDisplay.classList.remove('text-red-700');
+                ciDisplay.classList.add('disabled');
+                ciMsg.innerText = "-";
+                
+                ci = 0;
+                cPrem = 0;
+            }
+
+            const type = document.getElementById('p6-type').value;
+            let mainRates = (type === '90/10') ? rates_90_10 : rates_90_20;
+            let mRate = getRate(mainRates[person.gender], person.age);
+            if(life >= 500000) {
+                mRate = Math.max(0, mRate - 1);
+                document.getElementById('p6-discount-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('p6-discount-badge').classList.add('hidden');
+            }
+            
+            let lPrem = Math.round((life/1000)*mRate);
+            let total = lPrem + cPrem;
+            document.getElementById('p6-price').innerText = fmt(total);
+        }
+        function calcPlan6() { validateAndCalc(); }
+
+        function unlockPlan6() {
+            if(plan6Unlocked) return;
+            document.getElementById('password-modal').classList.add('active');
+            setTimeout(() => document.getElementById('agent-password').focus(), 100);
+        }
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.remove('active');
+            document.getElementById('agent-password').value = '';
+        }
+        function checkPassword() {
+            if(document.getElementById('agent-password').value === "9999") {
+                plan6Unlocked = true;
+                closePasswordModal();
+                document.getElementById('plan-6-container').classList.remove('hidden');
+                document.getElementById('radio-plan-6').checked = true;
+                onPlanChange(); // Refresh age options to 0-70
+                document.getElementById('plan-6-container').scrollIntoView({behavior:'smooth'});
+            } else { alert("รหัสผ่านไม่ถูกต้อง"); }
+        }
+
+        // --- GEMINI AI ADVISOR ---
+        async function callGeminiAdvisor() {
+            const box = document.getElementById('ai-advisor-box');
+            const loading = document.getElementById('ai-loading');
+            const content = document.getElementById('ai-content');
+            const textEl = document.getElementById('ai-text');
+            const objBox = document.getElementById('ai-objection-box');
+            const salesBox = document.getElementById('ai-sales-box');
+            
+            // Close other boxes
+            if(!objBox.classList.contains('hidden')) objBox.classList.add('hidden');
+            if(!salesBox.classList.contains('hidden')) salesBox.classList.add('hidden');
+            
+            // Toggle Logic
+            if(!box.classList.contains('hidden') && content.innerText.length > 0) {
+                box.classList.add('hidden');
+                return;
+            }
+
+            box.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+            
+            // Gather Data
+            const genderStr = person.gender === 'm' ? "ชาย" : "หญิง";
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            let planName = "N/A", life = 0, ci = 0, premium = "N/A";
+            
+            if(selRadio) {
+                const pid = selRadio.value;
+                if(pid === '6') {
+                    planName = "Custom Plan " + document.getElementById('p6-type').value;
+                    life = document.getElementById('p6-life-display').value;
+                    ci = document.getElementById('p6-ci-display').value;
+                    premium = document.getElementById('p6-price').innerText;
+                } else {
+                    const p = plansData.find(x => x.id == pid);
+                    planName = p.name;
+                    life = fmt(p.lifeSum);
+                    ci = fmt(p.ciSum);
+                    premium = document.getElementById(`price-plan-${pid}`).innerText;
+                }
+            }
+            
+            const prompt = `
+                Role: คุณคือ 'คุณนุ๊ก' ที่ปรึกษาการเงินและการประกันชีวิตมืออาชีพจาก FWD ที่มีความเชี่ยวชาญ สุภาพ นอบน้อม และให้เกียรติลูกค้าสูงสุด
+                Persona: แทนตัวเองว่า 'นุ๊ก' (หรือ 'ดิฉัน' ถ้าเหมาะสม แต่ 'นุ๊ก' ดูเป็นกันเองแบบสุภาพได้) ลงท้ายด้วย 'ค่ะ' เสมอ
+                Tone: ใช้ภาษาที่สุภาพ เป็นทางการระดับกึ่งทางการ (Semi-formal) แสดงความห่วงใยและจริงใจ แต่ไม่ลามปาม ไม่เล่นหัว เหมือนคุยกับผู้ใหญ่ที่เคารพ
+                
+                ข้อมูลลูกค้า: เพศ ${genderStr} อายุ ${person.age} ปี
+                แผนที่เลือก: ${planName}
+                ทุนชีวิต: ${life} บาท
+                ทุนโรคร้ายแรง: ${ci} บาท
+                เบี้ยประกัน: ${premium} บาท/ปี
+                
+                โจทย์: วิเคราะห์จุดเด่นของแผนนี้ด้วยภาษาที่สุภาพ ให้เกียรติ และเป็นมืออาชีพ (สั้นๆ 3 บรรทัด) ชี้ให้เห็นถึงความมั่นคงและการสร้างหลักประกันที่คุ้มค่าสำหรับลูกค้า
+            `;
+
+            try {
+                const response = await fetch('/.netlify/functions/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt }) 
+});
+                
+                const data = await response.json();
+                const advice = data.candidates[0].content.parts[0].text;
+                
+                textEl.innerText = advice;
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error(error);
+                textEl.innerText = "ขออภัยค่ะ ระบบประมวลผลขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งนะคะ";
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+        }
+
+        // --- GEMINI OBJECTION KILLER ---
+        function toggleObjectionBox() {
+            const box = document.getElementById('ai-objection-box');
+            const advBox = document.getElementById('ai-advisor-box');
+            const salesBox = document.getElementById('ai-sales-box');
+            
+            // Close other boxes
+            if(!advBox.classList.contains('hidden')) advBox.classList.add('hidden');
+            if(!salesBox.classList.contains('hidden')) salesBox.classList.add('hidden');
+
+            box.classList.toggle('hidden');
+            if(!box.classList.contains('hidden')) {
+                document.getElementById('objection-input').focus();
+            }
+        }
+
+        async function askGeminiObjection() {
+            const inputVal = document.getElementById('objection-input').value.trim();
+            if(!inputVal) return;
+
+            const loading = document.getElementById('objection-loading');
+            const content = document.getElementById('objection-content');
+            const textEl = document.getElementById('objection-text');
+            
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+             // Gather Context Data
+            const genderStr = person.gender === 'm' ? "ชาย" : "หญิง";
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            let planName = "N/A";
+            if(selRadio) {
+                const pid = selRadio.value;
+                if(pid === '6') {
+                    planName = "Custom Plan " + document.getElementById('p6-type').value;
+                } else {
+                    const p = plansData.find(x => x.id == pid);
+                    planName = p.name;
+                }
+            }
+
+            const prompt = `
+                Role: คุณคือ 'คุณนุ๊ก' ที่ปรึกษาการเงินอาวุโสจาก FWD ที่มีความเข้าใจลูกค้าและเชี่ยวชาญการตอบข้อซักถาม
+                Persona: พูดจาสุภาพ นุ่มนวล ให้เกียรติลูกค้า (แทนตัวเองว่า 'นุ๊ก' ลงท้าย 'ค่ะ')
+                Tone: สุภาพชน เป็นทางการแต่ไม่แข็งกระด้าง
+                
+                Context: กำลังนำเสนอแผน 90/20 + CI50 ให้ลูกค้าเพศ ${genderStr} อายุ ${person.age} ปี (แผน: ${planName})
+                Customer Objection: "${inputVal}"
+                
+                Task: ช่วยร่างคำตอบสำหรับข้อโต้แย้ง '${inputVal}' โดยใช้ถ้อยคำที่สุภาพ นุ่มนวล และให้เกียรติลูกค้า แสดงความเข้าใจในมุมมองของลูกค้าก่อน แล้วจึงอธิบายเหตุผลด้วยความจริงใจและเป็นมืออาชีพ (สั้นๆ 2-3 ประโยค)
+            `;
+
+             try {
+                const response = await fetch('/.netlify/functions/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt }) 
+});
+                
+                const data = await response.json();
+                const reply = data.candidates[0].content.parts[0].text;
+                
+                textEl.innerText = reply;
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error(error);
+                textEl.innerText = "ขออภัยค่ะ ระบบกำลังประมวลผลล่าช้า กรุณาลองสอบถามใหม่อีกครั้งนะคะ";
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+        }
+
+        // --- GEMINI SALES IDEA (NEW) ---
+        function toggleSalesBox() {
+            const box = document.getElementById('ai-sales-box');
+            const advBox = document.getElementById('ai-advisor-box');
+            const objBox = document.getElementById('ai-objection-box');
+            
+            // Close other boxes
+            if(!advBox.classList.contains('hidden')) advBox.classList.add('hidden');
+            if(!objBox.classList.contains('hidden')) objBox.classList.add('hidden');
+
+            box.classList.toggle('hidden');
+            if(!box.classList.contains('hidden')) {
+                document.getElementById('sales-input').focus();
+            }
+        }
+
+        async function askGeminiSales() {
+            const inputVal = document.getElementById('sales-input').value.trim();
+            if(!inputVal) return;
+
+            const loading = document.getElementById('sales-loading');
+            const content = document.getElementById('sales-content');
+            const textEl = document.getElementById('sales-text');
+            
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            // Gather Context Data
+            const genderStr = person.gender === 'm' ? "ชาย" : "หญิง";
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            let planName = "N/A", life = 0, ci = 0, premium = "N/A";
+            
+            if(selRadio) {
+                const pid = selRadio.value;
+                if(pid === '6') {
+                    planName = "Custom Plan " + document.getElementById('p6-type').value;
+                    life = document.getElementById('p6-life-display').value;
+                    ci = document.getElementById('p6-ci-display').value;
+                    premium = document.getElementById('p6-price').innerText;
+                } else {
+                    const p = plansData.find(x => x.id == pid);
+                    planName = p.name;
+                    life = fmt(p.lifeSum);
+                    ci = fmt(p.ciSum);
+                    premium = document.getElementById(`price-plan-${pid}`).innerText;
+                }
+            }
+
+            const prompt = `
+                Role: คุณคือ 'คุณนุ๊ก' นักวางแผนการเงินมืออาชีพจาก FWD ที่มีความทักษะการเล่าเรื่องและการนำเสนอที่น่าเชื่อถือ
+                Persona: สุภาพ เรียบร้อย ให้เกียรติผู้ฟัง (แทนตัวเองว่า 'นุ๊ก' ลงท้าย 'ค่ะ')
+                Language: ภาษาที่สละสลวย เป็นทางการ เปรียบเทียบอย่างมีหลักการ
+                
+                Context: กำลังนำเสนอแผน 90/20 + CI50 ให้ลูกค้าเพศ ${genderStr} อายุ ${person.age} ปี (ทุนชีวิต: ${life}, ทุนโรคร้าย: ${ci}, เบี้ย: ${premium}/ปี)
+                
+                User Request: ช่วยขายแผนนี้โดยใช้แนวคิด '${inputVal}'
+                
+                Task: ร่างบทสนทนาการขายโดยใช้ไอเดีย '${inputVal}' ด้วยน้ำเสียงที่สุภาพ นอบน้อม และน่าเชื่อถือ เชื่อมโยงเข้ากับแผนประกันอย่างมีเหตุผล เพื่อให้ลูกค้าเห็นคุณค่าของสิ่งที่นำเสนอ (ความยาว 4-5 บรรทัด)
+            `;
+
+             try {
+                const response = await fetch('/.netlify/functions/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: prompt }) // ส่งแค่ prompt ไป
+});
+                
+                const data = await response.json();
+                const reply = data.candidates[0].content.parts[0].text;
+                
+                textEl.innerText = reply;
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error(error);
+                textEl.innerText = "ขออภัยค่ะ นุ๊กกำลังเรียบเรียงข้อมูลอยู่ กรุณาลองเปลี่ยนแนวคิดดูนะคะ";
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+        }
+
+        // --- FULL SCREEN OVERLAY LOGIC ---
+        function toggleFutureOverlay() {
+            const overlay = document.getElementById('future-overlay');
+            const isActive = overlay.classList.contains('active');
+            
+            if (!isActive) {
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; 
+                renderFutureTable();
+            } else {
+                overlay.classList.remove('active');
+                document.body.style.overflow = ''; 
+            }
+        }
+        
+        function syncDuration(val) {
+            document.getElementById('future-duration').value = val;
+            document.getElementById('future-duration-mobile').value = val;
+        }
+
+        function getFutureTableData() {
+            const selRadio = document.querySelector('input[name="plan"]:checked');
+            if(!selRadio) return null;
+
+            let lifeSum, ciSum, planType="90/20";
+            const pid = selRadio.value;
+            
+            // Handle Custom Plan Logic
+            if(pid==='6') {
+                lifeSum = parseInt(document.getElementById('p6-life-range').value);
+                
+                // Check if CI is enabled
+                const ciToggle = document.getElementById('p6-ci-toggle');
+                if (ciToggle && ciToggle.checked) {
+                    ciSum = parseInt(document.getElementById('p6-ci-range').value);
+                } else {
+                    ciSum = 0; // Disabled
+                }
+                
+                planType = document.getElementById('p6-type').value;
+            } else {
+                const p = plansData.find(x=>x.id==pid);
+                lifeSum = p.lifeSum; ciSum = p.ciSum;
+            }
+
+            const duration = parseInt(document.getElementById('future-duration').value);
+            let endAge;
+            if(duration === 60 || duration === 84) endAge = duration; // Capped at 84 per user request
+            else endAge = person.age + duration - 1; 
+
+            // Explicit safety cap: never exceed 84
+            if (endAge > 84) endAge = 84;
+            
+            if(endAge < person.age) endAge = person.age;
+
+            let mainRates = (planType==='90/10') ? rates_90_10 : rates_90_20;
+            let mRate = getRate(mainRates[person.gender], person.age);
+            if(lifeSum >= 500000 && (pid === '6' || pid === '1' || pid === '2' || pid === '3' || pid === '4' || pid === '5')) {
+                if(pid === '6' || lifeSum >= 500000) mRate = Math.max(0, mRate - 1);
+            }
+
+            const fixedLifePrem = Math.round((lifeSum/1000)*mRate);
+            const payTerm = (planType==='90/10') ? 10 : 20;
+            
+            let startAge = person.age;
+            let yearCount = 0;
+            let rows = [];
+
+            for(let age=startAge; age<=endAge; age++) {
+                yearCount++;
+                let lPrem = (yearCount <= payTerm) ? fixedLifePrem : 0;
+                
+                let cPrem = 0;
+                // Only calc CI premium if sum > 0 AND age <= 84
+                if (ciSum > 0 && age <= 84) {
+                    let cRateStep = getRate(rates_ci50[person.gender], age);
+                    cPrem = Math.round((ciSum/1000)*cRateStep);
+                }
+                
+                let total = lPrem + cPrem;
+                rows.push({ age, year: yearCount, lPrem, cPrem, total });
+            }
+
+            return { rows, lifeSum, ciSum, planType };
+        }
+
+        function generateTableHTML(rows, lifeSum, ciSum, planType, isFooter = false, totalRows = 0) {
+            const titleAge = `ตารางส่งเบี้ยประกัน ${person.gender==='m'?'ชาย':'หญิง'} ${person.age} ปี`;
+            const hasCI = ciSum > 0;
+            
+            // Adjust column widths based on whether CI is enabled
+            const colGroup = hasCI ? 
+                `<colgroup>
+                    <col style="width: 10%">
+                    <col style="width: 10%">
+                    <col style="width: 26%">
+                    <col style="width: 27%">
+                    <col style="width: 27%">
+                </colgroup>` :
+                `<colgroup>
+                    <col style="width: 15%">
+                    <col style="width: 15%">
+                    <col style="width: 40%">
+                    <col style="width: 30%">
+                </colgroup>`;
+
+            const ciHeader = hasCI ? 
+                `<th class="th-gray" style="vertical-align: middle;">
+                    <div style="margin-bottom: 6px; line-height: 1.2;">CI50 ทุน ${fmt(ciSum)}</div>
+                    <div style="font-size:10px; color:#d97706;">(เบี้ยปรับตามวัย)</div>
+                </th>` : '';
+
+            const headerColSpan = hasCI ? 5 : 4;
+
+            let tableHtml = `
+            <table class="fwd-table w-full mb-4">
+                ${colGroup}
+                <thead>
+                    <tr class="main-header"><th colspan="${headerColSpan}">${titleAge}</th></tr>
+                    <tr class="col-header">
+                        <th class="th-orange">อายุลูกค้า</th>
+                        <th class="th-orange">อายุกรมธรรม์</th>
+                        <th class="th-gray" style="vertical-align: middle;">
+                            <div style="margin-bottom: 6px; line-height: 1.2;">IVP${planType} ทุน ${fmt(lifeSum)}</div>
+                            <div style="font-size:10px; color:#64748b;">(เบี้ยคงที่)</div>
+                        </th>
+                        ${ciHeader}
+                        <th class="th-light-orange">เบี้ยทุกสัญญา</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            rows.forEach(r => {
+                const ciCell = hasCI ? `<td class="td-money">${fmt(r.cPrem)}</td>` : '';
+                tableHtml += `
+                <tr>
+                    <td class="td-age">${r.age}</td>
+                    <td>${r.year}</td>
+                    <td class="td-money">${fmt(r.lPrem)}</td>
+                    ${ciCell}
+                    <td class="td-total">${fmt(r.total)}</td>
+                </tr>`;
+            });
+
+            tableHtml += `</tbody>`;
+            
+            if(isFooter) {
+                const summaryText = hasCI ? 
+                    `2 สัญญา ความคุ้มครองสูงสุด ${fmt(lifeSum + ciSum)} บาท` : 
+                    `1 สัญญา ความคุ้มครองสูงสุด ${fmt(lifeSum)} บาท`;
+                
+                tableHtml += `
+                <tfoot>
+                    <tr>
+                        <td colspan="2">สรุป ${totalRows} ปี</td>
+                        <td colspan="${hasCI ? 3 : 2}">${summaryText}</td>
+                    </tr>
+                </tfoot>`;
+            }
+
+            tableHtml += `</table>`;
+            return tableHtml;
+        }
+
+        function renderFutureTable() {
+            const data = getFutureTableData();
+            if(!data) return;
+            const html = generateTableHTML(data.rows, data.lifeSum, data.ciSum, data.planType, true, data.rows.length);
+            document.getElementById('screen-table-container').innerHTML = html;
+        }
+
+        // --- PDF GENERATION (CHUNK LOGIC) ---
+        async function exportFullPDF() {
+            const { jsPDF } = window.jspdf;
+            const data = getFutureTableData();
+            if(!data) return;
+
+            const captureContainer = document.getElementById('pdf-capture-container');
+            captureContainer.style.visibility = "visible"; 
+            captureContainer.style.zIndex = "9999"; 
+
+            try {
+                const pdf = new jsPDF('p', 'mm', 'a4'); 
+                const totalRows = data.rows.length;
+                
+                let startIndex = 0;
+                let pageNum = 1;
+                
+                // Determine max age in table for dynamic remark
+                const maxAgeInTable = data.rows[data.rows.length - 1].age;
+                let remarkText = "";
+                let hasCI = data.ciSum > 0;
+                
+                if (hasCI) {
+                    if (maxAgeInTable > 60) {
+                        remarkText = "เบี้ยประกันสัญญาเพิ่มเติม (CI50) ปรับเพิ่มขึ้นตามอายุ โดยเฉพาะหลังอายุ 60 ปี มีแนวโน้มปรับเพิ่มขึ้นประมาณ 12-15% ต่อปี ตามความเสี่ยงด้านสุขภาพที่เพิ่มขึ้น";
+                    } else {
+                        remarkText = "เบี้ยประกันสัญญาเพิ่มเติม (CI50) ปรับเพิ่มขึ้นตามอายุ ในช่วงวัยทำงานถึงก่อนเกษียณ มีแนวโน้มปรับเพิ่มขึ้นเฉลี่ยประมาณ 4-8% ต่อปี";
+                    }
+                }
+
+                while (startIndex < totalRows) {
+                    if(pageNum > 1) pdf.addPage();
+                    
+                    // Logic for Rows per Page based on Total Duration
+                    let rowsForThisPage;
+                    
+                    if (totalRows >= 46) {
+                        // Case: Long term plan (>= 46 years)
+                        // All pages get 25 rows
+                        rowsForThisPage = 25; 
+                    } else {
+                        // Case: Short/Medium term plan (< 46 years)
+                        // Page 1 gets 20 rows, subsequent pages get 25 rows
+                        if (pageNum === 1) {
+                            rowsForThisPage = 20;
+                        } else {
+                            rowsForThisPage = 25;
+                        }
+                    }
+
+                    const chunkRows = data.rows.slice(startIndex, startIndex + rowsForThisPage);
+                    const isLastPage = (startIndex + rowsForThisPage) >= totalRows;
+                    
+                    let htmlContent = `
+                        <div class="pdf-page-wrapper">
+                            <div class="pdf-page-header">ตารางวางแผนอนาคตลูกค้านุ๊ก</div>
+                            ${generateTableHTML(chunkRows, data.lifeSum, data.ciSum, data.planType, isLastPage, totalRows)}
+                    `;
+
+                    if(isLastPage) {
+                        let ciRemarkLi = hasCI ? `<li>สัญญาเพิ่มเติมโรคร้ายแรง (CI50): <strong>${remarkText}</strong></li>` : '';
+                        
+                        htmlContent += `
+                            <div class="pdf-remark">
+                                <i class="fas fa-info-circle text-orange-500"></i> 
+                                <strong>หมายเหตุสำคัญ:</strong> 
+                                <ul style="list-style-type: disc; margin-left: 20px; margin-top: 5px;">
+                                    <li>แบบประกันชีวิตหลัก (IVP 90/20 หรือ 90/10): <strong>เบี้ยคงที่</strong> ตลอดสัญญาชำระเบี้ย</li>
+                                    ${ciRemarkLi}
+                                </ul>
+                            </div>
+                            <div class="pdf-footer">
+                                <div>จัดทำโดย: คุณนุ๊ก FWD</div>
+                            </div>
+                        `;
+                    }
+                    
+                    htmlContent += `</div>`; 
+
+                    captureContainer.innerHTML = htmlContent;
+
+                    // ปรับ scale ของ html2canvas เป็น 3.0 (คมชัดเหมือนเดิม) และใช้ JPEG 1.0 (ลดขนาดไฟล์)
+                    const canvas = await html2canvas(captureContainer, { scale: 3.0, useCORS: true, logging: false });
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0); // High Quality JPEG
+                    const imgWidth = 210; // A4 width in mm
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight); 
+                    
+                    startIndex += rowsForThisPage;
+                    pageNum++;
+                }
+
+                pdf.save(`FWD_PerfectPlan_${person.age}.pdf`);
+                
+                const toast = document.getElementById('toast');
+                toast.classList.remove('opacity-0', 'translate-y-20');
+                setTimeout(() => toast.classList.add('opacity-0', 'translate-y-20'), 3000);
+
+            } catch (error) {
+                console.error(error);
+                alert("Error generating PDF");
+            } finally {
+                captureContainer.style.visibility = "hidden";
+                captureContainer.style.zIndex = "-9999";
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
